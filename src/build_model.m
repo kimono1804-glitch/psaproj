@@ -169,8 +169,16 @@ end
                 B.(key) = addb(sprintf('PMU_%s%s', upper(q{1}), n), 'pmu', [x.(bus) yq]);
                 setp(B.(key).path, 'frequency', num2str(p.f_Hz), ...
                     'Nsr', num2str(p.pmu_samples_per_cycle), 'k', 'P.pmu_report_ratio');
+                % Raw SI signal (logged), then scaled to per unit for the PMU,
+                % whose PLL gains assume per-unit input.
                 src_blk = B.(['ps_' q{1} n]).path;
-                sig(src_blk, 1, B.(key).path, 1, sprintf('%s_%s_abc', q{1}, bus));
+                gk = sprintf('%s/PU_%s%s', mdl, upper(q{1}), n);
+                if q{1} == 'v', base = 'P.pmu_V_base_peak_V'; else, base = 'P.pmu_I_base_peak_A'; end
+                add_block(m.gain, gk, 'Gain', ['1/' base], 'Position', box([x.(bus)-100 yq+10], [40 30]));
+                sig(src_blk, 1, gk, 1, sprintf('%s_%s_abc', q{1}, bus));
+                ps_ = get_param(gk, 'PortHandles'); pd_ = get_param(B.(key).path, 'PortHandles');
+                lh = add_line(mdl, ps_.Outport(1), pd_.Inport(1), 'autorouting', 'smart');
+                set_param(lh, 'Name', sprintf('%s_%s_pu', q{1}, bus));
                 outs = {'freq', 'angle', 'mag'};
                 for o = 1:3
                     t = addterm(sprintf('T_%s_%s', key, outs{o}), [x.(bus)+200 yq+30*(o-1)]);

@@ -57,6 +57,10 @@ p.fault_t_on_s  = 1.00;
 p.fault_t_off_s = 1.10;
 
 % PMU
+% The PMU's internal PLL has fixed gains tuned for per-unit input, so its
+% inputs are scaled to per unit. Voltage base: phase peak. Current base:
+% phase peak current of this three-phase power base.
+p.pmu_S_base_VA        = 500e6;
 p.pmu_reports_per_s    = 50;
 p.pmu_samples_per_cycle = 64;     % spec asks for at least 32; block allows only 24, 48, 64
 
@@ -161,6 +165,8 @@ if ~ismember(p.pmu_samples_per_cycle, [24 48 64])
     error('params:pmu', 'PMU block only supports 24, 48 or 64 samples per cycle.');
 end
 p.pmu_Ts_s = p.T_cycle_s/p.pmu_samples_per_cycle;
+p.pmu_V_base_peak_V = p.V1_ph_peak_V;
+p.pmu_I_base_peak_A = sqrt(2)*p.pmu_S_base_VA/(sqrt(3)*p.V1_LL_rms_V);
 p.pmu_report_period_s = 1/p.pmu_reports_per_s;
 p.pmu_report_ratio = round(p.pmu_report_period_s/p.pmu_Ts_s);
 if abs(p.pmu_report_ratio*p.pmu_Ts_s - p.pmu_report_period_s) > 1e-12
