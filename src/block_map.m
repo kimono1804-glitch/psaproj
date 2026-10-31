@@ -96,12 +96,36 @@ for r = 1:size(roles, 1)
     map.(role) = found;
 end
 
+% Port roles. Simscape port handles carry no names, so these were found by
+% connecting each port to a composite three-phase node, a single electrical
+% node or a physical signal converter and checking which networks compile
+% (R2025b). test_model_builds re-checks them because a wrong port fails to
+% compile. 'L1' means LConn(1), 'R2' means RConn(2).
+map.port.source3        = struct('n','L1', 'abc','R1');
+map.port.line_pi3       = struct('abc1','L1', 'g1','L2', 'abc2','R1', 'g2','R2');
+map.port.line_dist1     = struct('p1','L1', 'n1','L2', 'p2','R1', 'n2','R2');
+map.port.fault3         = struct('abc','L1');
+map.port.vsensor3       = struct('abc1','L1', 'v','R1', 'abc2','R2');
+map.port.isensor3       = struct('abc1','L1', 'i','R1', 'abc2','R2');   % + current flows abc1 -> abc2
+map.port.phase_splitter = struct('abc','L1', 'a','R1', 'b','R2', 'c','R3');
+map.port.grounded_neutral = struct('abc','L1');
+map.port.elec_ref       = struct('v','L1');
+map.port.solver         = struct('ref','R1');
+map.port.ps2sl          = struct('ps','L1');
+
+% Enumerated values discovered from mask visibility (R2025b), see README
+map.enum.line_dist1_model_distributed = '5';
+map.enum.source3_impedance_none   = '0';
+map.enum.source3_impedance_seriesRL = '4';
+map.enum.fault3_none = '0';
+map.enum.fault3_abcg = '11';
+
 cache = map;
 if verbose, print_map(map); end
 end
 
 function print_map(map)
-f = fieldnames(map);
+f = setdiff(fieldnames(map), {'port','enum'}, 'stable');
 for k = 1:numel(f)
     fprintf('  %-17s %s\n', f{k}, strrep(map.(f{k}), newline, ' '));
 end

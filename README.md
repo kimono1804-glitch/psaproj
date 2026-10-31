@@ -54,6 +54,13 @@ All of these are named fields in `src/params.m`.
 
 ## Deviations
 
+- Line capacitance is 0.0125 uF/km, not 0.012 uF/km. With L = 0.9 mH/km, the brief's
+  value gives a wave speed of 1/sqrt(LC) = 304,000 km/s, which is faster than light.
+  Both Simscape Electrical line blocks refuse to compile that. 0.0125 uF/km is a typical
+  400 kV value (0.994 c). L, R and the series reactance (84.8 ohm) are unchanged. New
+  derived values: C total 3.75 uF, B 1.178 mS, charging 188.5 MVAr, Zc 268.3 ohm,
+  SIL 596 MW, travel time 1.006 ms, electrical length 18.1 degrees. Agreed with the user.
+
 - PMU samples per cycle is 64, not 32. The PMU (Three-Phase) block in R2025b only offers
   24, 48 or 64. 64 meets the "at least 32" rule. With Ts = 1/(50*64) = 0.3125 ms, a
   reporting rate factor k = 64 gives one report every 20 ms (50 per second).

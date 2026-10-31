@@ -21,19 +21,23 @@ verifyEqual(tc, p.line_L_total_H, 0.27, 'RelTol', 1e-9);
 verifyEqual(tc, p.line_X_total_ohm, 84.82, 'RelTol', 1e-3);
 end
 
+% Shunt and surge values use C = 0.0125 uF/km, not the brief's 0.012
+% (which is faster than light). Expected values are recomputed by hand
+% for 0.0125; the brief's figures are in the comments.
 function testShunt(tc)
 p = tc.TestData.p;
-verifyEqual(tc, p.line_C_total_F, 3.6e-6, 'RelTol', 1e-9);
-verifyEqual(tc, p.line_B_total_S, 1.131e-3, 'RelTol', 1e-3);
-verifyEqual(tc, p.line_Q_charging_var, 180e6, 'RelTol', 0.02);
+verifyEqual(tc, p.line_C_total_F, 3.75e-6, 'RelTol', 1e-9);       % brief: 3.6 uF
+verifyEqual(tc, p.line_B_total_S, 1.178e-3, 'RelTol', 1e-3);      % brief: 1.13 mS
+verifyEqual(tc, p.line_Q_charging_var, 188.5e6, 'RelTol', 0.005); % brief: about 180 MVAr
 end
 
 function testSurge(tc)
 p = tc.TestData.p;
-verifyEqual(tc, p.line_Zc_lossless_ohm, 274, 'RelTol', 0.01);
-verifyEqual(tc, p.line_SIL_W, 580e6, 'RelTol', 0.02);
-verifyEqual(tc, p.line_travel_time_s, 1e-3, 'RelTol', 0.02);
-verifyEqual(tc, p.line_electrical_length_deg, 18, 'RelTol', 0.03);
+verifyEqual(tc, p.line_Zc_lossless_ohm, 268.3, 'RelTol', 0.002);  % brief: about 274
+verifyEqual(tc, p.line_SIL_W, 596.3e6, 'RelTol', 0.002);          % brief: about 580 MW
+verifyEqual(tc, p.line_travel_time_s, 1.006e-3, 'RelTol', 0.002); % brief: about 1 ms
+verifyEqual(tc, p.line_electrical_length_deg, 18.1, 'RelTol', 0.005);
+verifyLessThan(tc, p.line_wave_speed_km_per_s, 299792.458);       % slower than light
 end
 
 function testSourceImpedance(tc)
