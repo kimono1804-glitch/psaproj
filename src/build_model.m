@@ -169,6 +169,14 @@ end
                 B.(key) = addb(sprintf('PMU_%s%s', upper(q{1}), n), 'pmu', [x.(bus) yq]);
                 setp(B.(key).path, 'frequency', num2str(p.f_Hz), ...
                     'Nsr', num2str(p.pmu_samples_per_cycle), 'k', 'P.pmu_report_ratio');
+                if p.pmu_input_normalization
+                    % The PMU mask fixes its inner PLL's input normalisation
+                    % off. Turn it on in this copy only (library untouched).
+                    set_param(B.(key).path, 'LinkStatus', 'inactive');
+                    inner = [B.(key).path '/' m.pmu_inner_pll];
+                    set_param(inner, 'LinkStatus', 'inactive');
+                    setp(inner, 'InputNormalization', 'on');
+                end
                 % Raw SI signal (logged), then scaled to per unit for the PMU,
                 % whose PLL gains assume per-unit input.
                 src_blk = B.(['ps_' q{1} n]).path;

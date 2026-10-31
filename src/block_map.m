@@ -113,6 +113,17 @@ map.port.elec_ref       = struct('v','L1');
 map.port.solver         = struct('ref','R1');
 map.port.ps2sl          = struct('ps','L1');
 
+% PLL block inside the PMU (its InputNormalization is switched on by build_model)
+map.pmu_inner_pll = 'Sinusoidal Measurement (PLL, Three-Phase)';
+if isempty(find_system(map.pmu, 'LookUnderMasks', 'all', 'FollowLinks', 'on', ...
+        'SearchDepth', 1, 'Name', map.pmu_inner_pll))
+    error('block_map:pmuInner', 'PMU block has no inner block "%s".', map.pmu_inner_pll);
+end
+dpi = get_param([map.pmu '/' map.pmu_inner_pll], 'DialogParameters');
+if ~isfield(dpi, 'InputNormalization')
+    error('block_map:pmuInner', 'Inner PLL block has no InputNormalization parameter.');
+end
+
 % Enumerated values discovered from mask visibility (R2025b), see README
 map.enum.line_dist1_model_distributed = '5';
 map.enum.source3_impedance_none   = '0';
@@ -125,7 +136,7 @@ if verbose, print_map(map); end
 end
 
 function print_map(map)
-f = setdiff(fieldnames(map), {'port','enum'}, 'stable');
+f = setdiff(fieldnames(map), {'port','enum','pmu_inner_pll'}, 'stable');
 for k = 1:numel(f)
     fprintf('  %-17s %s\n', f{k}, strrep(map.(f{k}), newline, ' '));
 end

@@ -52,7 +52,9 @@ end
 outdir = fullfile(root, 'results');
 if ~isfolder(outdir), mkdir(outdir); end
 simout = out; %#ok<NASGU>
-save(fullfile(outdir, [p.case_name '_simout.mat']), 'simout', 'p', '-v7.3');
+tag = '';
+if ~strcmp(p.line_model, 'pi'), tag = ['_' p.line_model]; end
+save(fullfile(outdir, [p.case_name tag '_simout.mat']), 'simout', 'p', '-v7.3');
 end
 
 function ts = get_ts(logs, name)

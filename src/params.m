@@ -59,8 +59,12 @@ p.fault_t_off_s = 1.10;
 % PMU
 % The PMU's internal PLL has fixed gains tuned for per-unit input, so its
 % inputs are scaled to per unit. Voltage base: phase peak. Current base:
-% phase peak current of this three-phase power base.
+% phase peak current of this three-phase power base. The PLL's own input
+% normalisation is also switched on (build_model), which makes its
+% dynamics independent of signal size; without it no single current base
+% worked for both the small case 1 current and the fault current. See README.
 p.pmu_S_base_VA        = 500e6;
+p.pmu_input_normalization = true;
 p.pmu_reports_per_s    = 50;
 p.pmu_samples_per_cycle = 64;     % spec asks for at least 32; block allows only 24, 48, 64
 
@@ -74,9 +78,11 @@ p.settle_cycles   = 1;            % PMU start-up window ignored in checks
 
 % Steady-state averaging window for cases 1 to 3 (after start-up transients die out)
 p.ss_window_s = [1.5 2.0];
-% Fault case windows: pre-fault, fault-on (skip first PMU cycle), post-fault
-p.prefault_window_s  = [0.6 1.0];
-p.faulton_window_s   = [1.04 1.10];
+% Fault case windows: pre-fault, fault-on, post-fault. The fault-on window
+% skips the first PMU cycle after inception (reports at 1.02 s still mix
+% pre-fault data) and stops before the report at the clearing instant.
+p.prefault_window_s  = [0.6 0.99];
+p.faulton_window_s   = [1.04 1.09];
 p.postfault_window_s = [1.6 2.0];
 
 % Files
