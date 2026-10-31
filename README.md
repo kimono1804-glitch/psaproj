@@ -21,23 +21,27 @@ Python 3 with numpy is used for the independent analytic check.
 ## How to run
 
 The `matlab` command on this machine points at R2026a, which does not have Simscape.
-Call R2025b by its full path:
+Call R2025b by its full path. Run these from the repository folder, in PowerShell (the
+`&` is needed to run a quoted program path):
 
-```
-"C:\Program Files\MATLAB\R2025b\bin\matlab.exe" -batch "cd src; run_all"
+```powershell
+cd "C:\Users\nevin\Desktop\aeryal flow\psaproj\psaproj"
+& "C:\Program Files\MATLAB\R2025b\bin\matlab.exe" -batch "cd src; run_all"
 ```
 
 Tests:
 
-```
-"C:\Program Files\MATLAB\R2025b\bin\matlab.exe" -batch "addpath src; r = runtests('tests'); disp(table(r)); assertSuccess(r)"
+```powershell
+& "C:\Program Files\MATLAB\R2025b\bin\matlab.exe" -batch "addpath src; r = runtests('tests'); disp(table(r)); assertSuccess(r)"
 ```
 
 Analytic check:
 
+```powershell
+& "C:\Users\nevin\miniconda3\python.exe" reference\analytic_check.py
 ```
-C:\Users\nevin\miniconda3\python.exe reference\analytic_check.py
-```
+
+In cmd.exe, leave out the `&`.
 
 `run_all` takes about 2.5 minutes and the test suite about 6 minutes on the development
 machine. Outputs go to `results/`: one dashboard PNG per simulation, a fault zoom PNG,
