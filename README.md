@@ -61,6 +61,24 @@ All of these are named fields in `src/params.m`.
   derived values: C total 3.75 uF, B 1.178 mS, charging 188.5 MVAr, Zc 268.3 ohm,
   SIL 596 MW, travel time 1.006 ms, electrical length 18.1 degrees. Agreed with the user.
 
+- The main line model is the three-phase pi block, not the distributed model. Each
+  150 km section is one nominal pi (`line_model = 'pi'`). Reasons:
+  1. Simscape Electrical R2025b has no three-phase distributed line that takes R, L, C
+     per km. The distributed option uses the single-phase "Transmission Line" block in
+     "Distributed parameter line" mode, one per phase, with positive-sequence data and
+     no mutual coupling (exact for balanced conditions).
+  2. That distributed model runs the no-fault cases, but with the fault it fails to
+     simulate. The solver cannot find consistent states at fault inception. Tried:
+     ode23t and ode15s with looser and tighter tolerances, more nonlinear iterations,
+     fixed-step local solvers (Backward Euler and trapezoidal, 20 to 50 us), source
+     parasitic conductance, the other source impedance option, larger fault resistance,
+     and a smooth variable-resistor fault instead of the Fault block. All failed. It
+     only ran with zero source impedance, which would drop the assumed 16 ohm source.
+  3. Multi-segment pi (3 or more segments per section) also stalls in the fault case
+     (over 120 s for 1.2 s of simulation), while one segment per section runs in seconds.
+  For 150 km at 50 Hz (about 9 electrical degrees) a nominal pi differs from the exact
+  line by well under 1 percent, and the exact ABCD analytic check stays the independent
+  reference. Cases 1 to 3 are also run with the distributed option as a comparison.
 - PMU samples per cycle is 64, not 32. The PMU (Three-Phase) block in R2025b only offers
   24, 48 or 64. 64 meets the "at least 32" rule. With Ts = 1/(50*64) = 0.3125 ms, a
   reporting rate factor k = 64 gives one report every 20 ms (50 per second).

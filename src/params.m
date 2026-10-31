@@ -42,8 +42,10 @@ p.line_C0_F_per_km   = 0.6 * p.line_C1_F_per_km;
 % Shunt conductance (not given; zero means no shunt loss)
 p.line_G1_S_per_km = 0;
 
-% Line model: 'distributed' (reference) or 'pi'
-p.line_model = 'distributed';
+% Line model: 'pi' (two 150 km nominal pi sections, used for all cases)
+% or 'distributed' (single-phase distributed lines per phase; runs the
+% no-fault cases only, see README Deviations)
+p.line_model = 'pi';
 p.line_n_sections = 2;            % split at the midpoint for the fault block
 p.line_pi_segments_per_section = 1;   % pi option: pi segments in each 150 km section
 
