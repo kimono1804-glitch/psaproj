@@ -1,0 +1,21 @@
+# Generated model, rebuilt by src/build_model.m
+models/*
+!models/.gitkeep
+
+# Generated results, except the summary table
+results/*
+!results/.gitkeep
+!results/summary.csv
+
+# MATLAB and Simulink build artefacts
+slprj/
+*.slxc
+*.asv
+*.autosave
+*.mexw64
+sccprj/
+codegen/
+
+# Python
+__pycache__/
+*.pyc
