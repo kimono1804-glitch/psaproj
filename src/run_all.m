@@ -4,12 +4,17 @@ function summary = run_all(varargin)
 %   cases 1 to 4 (cases 4 and 5 are one run), writes
 %     results/<case>_dashboard.png, results/case45_fault_zoom.png,
 %     results/summary.csv, results/<case>_simout.mat
+%   It then runs reference/analytic_check.py (if Python with numpy is
+%   found), writes results/report.html and shows the results: the
+%   show_results window inside the MATLAB desktop, or the HTML report in
+%   the browser when run with matlab -batch.
+%   run_all('show', false) writes everything but opens nothing.
 %   run_all('skip_distributed', false) also re-runs cases 1 to 3 with the
 %   distributed line (results/summary_distributed.csv). Off by default:
 %   in R2025b that model fails at about 1.257 s even without a fault
 %   (see README, Deviations); failures are reported, not hidden.
 
-opts = struct('skip_distributed', true);
+opts = struct('skip_distributed', true, 'show', true);
 for k = 1:2:numel(varargin), opts.(varargin{k}) = varargin{k+1}; end
 
 here = fileparts(mfilename('fullpath'));
@@ -43,6 +48,33 @@ summary = struct2table(rows);
 writetable(summary, fullfile(outdir, 'summary.csv'));
 fprintf('\nWrote %s\n', rel(fullfile(outdir, 'summary.csv'), root));
 show(summary);
+
+% Independent analytic check, report and display
+py = find_python();
+ref = fullfile(outdir, 'analytic_reference.json');
+if isempty(py)
+    fprintf('\nPython with numpy not found: skipping the analytic check (set PSAPROJ_PYTHON).\n');
+else
+    [st, txt] = system(sprintf('"%s" "%s" "%s"', py, fullfile(root, 'reference', 'analytic_check.py'), ref));
+    if st ~= 0
+        fprintf('\nanalytic_check.py failed:\n%s\n', txt);
+    else
+        V = compare_with_analytic(summary, jsondecode(fileread(ref)), base);
+        fprintf('\nVerification against the analytic solution: %d of %d checks pass\n', ...
+            nnz(strcmp(V.Status, 'pass')), nnz(~strcmp(V.Status, 'info')));
+    end
+end
+report = make_report();
+fprintf('Wrote %s\n', rel(report, root));
+if opts.show
+    if usejava('desktop')
+        show_results();
+    elseif ispc
+        winopen(report);
+    else
+        web(report, '-browser');
+    end
+end
 
 if ~opts.skip_distributed
     fprintf('\nComparison: cases 1 to 3 with the distributed line...\n');

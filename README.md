@@ -45,7 +45,24 @@ In cmd.exe, leave out the `&`.
 
 `run_all` takes about 2.5 minutes and the test suite about 6 minutes on the development
 machine. Outputs go to `results/`: one dashboard PNG per simulation, a fault zoom PNG,
-`summary.csv`, and the saved `Simulink.SimulationOutput` for each case.
+`summary.csv`, `report.html`, and the saved `Simulink.SimulationOutput` for each case.
+
+## Viewing the results
+
+`run_all` ends by showing the results:
+
+- **From the terminal** (`matlab -batch`): `results/report.html` opens in your web browser.
+  It is one self-contained page: headline numbers, what each case shows, the results
+  table, the verification against the analytic solution with pass or fail for each
+  check, and every plot. It can be shared as a single file.
+- **Inside the MATLAB desktop** (`cd src; run_all` in the Command Window): a results
+  window opens with the same report, plus a toolbar to open any case as zoomable MATLAB
+  figures (redrawn from the saved simulation, no re-run) or open the report in a browser.
+
+To look at results again later without re-simulating, run `show_results` in the MATLAB
+desktop (with `src` on the path), or open `results/report.html` directly.
+`run_all('show', false)` writes everything but opens nothing. The report follows the
+system light or dark setting.
 
 ## Files
 
@@ -59,6 +76,11 @@ machine. Outputs go to `results/`: one dashboard PNG per simulation, a fault zoo
 | `src/analyze_case.m` | Delta-theta, ROCOF, window averages, summary rows. Sign conventions at the top. |
 | `src/plot_case.m` | Dashboards and the fault zoom plot. |
 | `src/run_all.m` | Entry point. |
+| `src/make_report.m` | Writes `results/report.html` from the saved results. |
+| `src/show_results.m` | MATLAB results window (report plus zoomable figures). |
+| `src/compare_with_analytic.m` | Simulink against the analytic solution, pass or fail per check. |
+| `src/extract_signals.m` | Pulls PMU, raw and P/Q signals out of a saved simulation. |
+| `src/find_python.m` | Finds a Python with numpy for the analytic check. |
 | `src/set_block_params.m` | Sets block parameters only if the name exists and is not hidden. |
 | `reference/analytic_check.py` | Independent steady state with numpy and the exact ABCD line model. |
 

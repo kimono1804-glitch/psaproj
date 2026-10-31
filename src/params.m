@@ -85,6 +85,17 @@ p.prefault_window_s  = [0.6 0.99];
 p.faulton_window_s   = [1.04 1.09];
 p.postfault_window_s = [1.6 2.0];
 
+% Verification tolerances against the analytic check (CLAUDE.md section 7)
+p.tol_V_rel      = 0.01;     % bus voltage magnitude
+p.tol_dtheta_deg = 0.5;      % angle difference
+p.tol_P_rel      = 0.03;     % active power (case 1: this fraction of case 2 P, absolute)
+p.tol_fault_rel  = 0.10;     % fault-on PMU values against the fault-on steady state
+
+% Plots: smallest y-axis span per quantity, so a flat signal is not
+% stretched until rounding noise looks like a feature
+p.plot_min_span = struct('V_kV', 2, 'I_A', 5, 'angle_deg', 0.5, 'dtheta_deg', 1, ...
+    'f_Hz', 0.02, 'rocof_Hz_per_s', 1, 'P_MW', 10, 'Q_Mvar', 10);
+
 % Files
 p.model_name = 'two_area_pmu';
 
