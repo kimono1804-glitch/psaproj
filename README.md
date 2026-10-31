@@ -11,6 +11,8 @@ See `CLAUDE.md` for the full specification.
 | Source type | Two equivalent grid sources (ideal voltage source behind a series R-L impedance) |
 | Analysis | Steady-state power flow and a midpoint three-phase fault |
 | MATLAB version | R2025b Update 7 (25.2), detected with `ver` |
+| Line model | Two 150 km nominal pi sections (distributed model could not run the fault case, see Deviations) |
+| Solver | ode23t, variable step, max step 1e-4 s, RelTol 1e-4 |
 | Library | Simscape Electrical physical-network blocks only (no Specialized Power Systems) |
 
 Toolboxes used: MATLAB, Simulink, Simscape, Simscape Electrical (all 25.2).
@@ -36,6 +38,84 @@ Analytic check:
 ```
 C:\Users\nevin\miniconda3\python.exe reference\analytic_check.py
 ```
+
+`run_all` takes about 2.5 minutes and the test suite about 6 minutes on the development
+machine. Outputs go to `results/`: one dashboard PNG per simulation, a fault zoom PNG,
+`summary.csv`, and the saved `Simulink.SimulationOutput` for each case.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `src/params.m` | Every number, one struct, units in field names. Derived values computed here. |
+| `src/block_map.m` | Finds library blocks for this release, checks parameter names, records port roles and enum values. |
+| `src/build_model.m` | Builds `models/two_area_pmu.slx` from scratch (stages: skeleton, line, full). |
+| `src/set_case.m` | Applies a case: model workspace `P`, source impedance, fault, solver. |
+| `src/run_case.m` | Simulates one case and returns the logged PMU, raw and P/Q signals. |
+| `src/analyze_case.m` | Delta-theta, ROCOF, window averages, summary rows. Sign conventions at the top. |
+| `src/plot_case.m` | Dashboards and the fault zoom plot. |
+| `src/run_all.m` | Entry point. |
+| `src/set_block_params.m` | Sets block parameters only if the name exists and is not hidden. |
+| `reference/analytic_check.py` | Independent steady state with numpy and the exact ABCD line model. |
+
+## Results (R2025b, from `results/summary.csv`)
+
+| Case | Window (s) | V1 kV | V2 kV | I1 A | I2 A | Delta-theta deg | P1 MW | Q1 Mvar | P2 MW | Q2 Mvar | Loss MW |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1, source 2 at 0 deg | 1.5 to 2.0 | 403.81 | 403.81 | 138.2 | 138.2 | 0.000 | 0.15 | -96.67 | 0.15 | -96.67 | 0.30 |
+| 2, source 2 at -10 deg | 1.5 to 2.0 | 403.10 | 403.05 | 380.3 | 352.9 | 7.237 | 243.41 | -106.11 | -239.91 | -55.96 | 3.50 |
+| 3, source 2 at -20 deg | 1.5 to 2.0 | 400.94 | 400.84 | 705.2 | 676.5 | 14.526 | 482.48 | -84.01 | -469.48 | 14.77 | 13.00 |
+| 4, fault on | 1.04 to 1.09 | 291.75 | 291.76 | 3947.9 | 3744.9 | 10.369 | 252.13 | 1954.58 | 250.91 | 1947.48 | 503.04 |
+| 5, after clearing | 1.6 to 2.0 | 403.10 | 403.05 | 380.3 | 352.9 | 7.237 | 243.41 | -106.11 | -239.91 | -55.96 | 3.50 |
+
+Voltages are line-to-line RMS and currents RMS, both from the PMUs. P and Q are
+time-averaged from the instantaneous three-phase P and Q of the raw signals.
+
+What the cases show:
+
+- Case 1: almost no active power. Each end takes about 97 Mvar of line charging.
+- Cases 2 and 3: power flows from bus 1 to bus 2 and Delta-theta is positive, as
+  expected. The angle across the line (7.2 and 14.5 deg) is smaller than the source
+  angle (10 and 20 deg) because part of it sits across the source impedances.
+- Case 4: both bus voltages fall to about 292 kV (0.72 pu) and the currents rise about
+  tenfold, to about 3.9 kA. Delta-theta rises to about 10 deg.
+- Case 5: everything returns to the case 2 values. The PMU voltage settles within about
+  0.2 s of clearing.
+
+Reading the fault rows: the window holds only three PMU reports and the currents carry a
+decaying DC offset, so the fault-on numbers are approximate. P, Q and loss in row 4 are
+averages over a transient. The column `P1_from_PMU_MW` (P from the PMU V and I phasors)
+is a steady-state cross-check only. It matches the instantaneous P to 0.001 percent in
+cases 1, 2, 3 and 5. During the fault, the current lags the voltage by about 84 deg, so
+P depends on the cosine of an angle near 90 deg, and a few degrees of PLL transient
+swings it widely (-376 MW in row 4).
+
+## Verification
+
+`tests/test_steady_state.m` compares cases 1 to 3 with `reference/analytic_check.py`
+(exact ABCD line, no Simulink):
+
+| Quantity | Worst difference | Tolerance |
+|---|---|---|
+| Bus voltage magnitude | 0.003 percent | 1 percent |
+| Delta-theta | 0.017 deg (case 3) | 0.5 deg |
+| Active power P1, P2 | 0.34 percent (case 3, P2) | 3 percent |
+| Reactive power (reported only) | 0.2 Mvar | none |
+| Line loss (reported only) | +0.13 MW in every case | none |
+
+The simplified lossless formula, three-phase P = V_LL^2 / X_loop sin(delta) with
+X_loop = 84.8 + 2 x 15.9 = 116.7 ohm and delta between the source voltages, gives 238.2
+and 469.1 MW for cases 2 and 3. That is 2.2 and 2.9 percent below Simulink, because it
+ignores resistance and line charging.
+
+`tests/test_fault.m`: during the fault the voltage drops below 0.9 of pre-fault and the
+current rises above twice pre-fault at both buses. After clearing, voltage and current
+return within 1 and 2 percent and Delta-theta within 0.5 deg. The fault-on PMU values
+are within 10 percent of the analytic fault-on steady state (V1 291.7 against 291.5 kV,
+I1 3948 against 3914 A).
+
+All 25 tests pass: `test_params` 7, `test_model_builds` 5, `test_steady_state` 7,
+`test_fault` 6.
 
 ## Assumptions not given in the brief
 
@@ -78,7 +158,32 @@ All of these are named fields in `src/params.m`.
      (over 120 s for 1.2 s of simulation), while one segment per section runs in seconds.
   For 150 km at 50 Hz (about 9 electrical degrees) a nominal pi differs from the exact
   line by well under 1 percent, and the exact ABCD analytic check stays the independent
-  reference. Cases 1 to 3 are also run with the distributed option as a comparison.
+  reference.
+  4. The planned distributed comparison for cases 1 to 3 could not be produced. In the
+     full model the distributed option also fails without a fault, at t = 1.2556 to
+     1.2574 s ("transient initialization ... failed to converge"), for every steady
+     case. Raising the Simscape delay memory budget from 1 MB to 64 MB made no
+     difference. The cause is not known. `run_all('skip_distributed', false)` still
+     tries it and prints the failure; it is off by default.
+- PMU inputs are scaled to per unit, and the PMU's inner PLL has its input normalisation
+  switched on. The PMU (Three-Phase) block is a PLL with fixed gains (Kp = 100, Ki = 1000)
+  and its mask fixes the inner "Sinusoidal Measurement (PLL, Three-Phase)" block's input
+  normalisation off, so the PLL speed depends on the signal size:
+  1. Fed raw volts and amps it diverged (frequency estimates of -2400 to +340 Hz).
+  2. Scaled to per unit (voltage base 326.6 kV peak, current base from 500 MVA), voltage
+     PMUs were exact, but no single current base worked for every case. A bench run of
+     the PMU on recorded currents, against a one-cycle DFT of the same signal, gave:
+     500 MVA base: fault current read 675 to 1277 A peak (true 5516 A) and the angle was
+     out by up to 173 degrees after clearing (lost lock). 5000 MVA base: fault current
+     right, but the small case 1 current angle was out by up to 28 degrees (slow PLL).
+  3. With the inner PLL's input normalisation on, every case matched the DFT within
+     0.05 degrees and the fault current within about 1 percent (5285 to 5469 A peak after
+     the first report), independent of the base.
+  So `build_model` deactivates the library link on each PMU copy in the model (the
+  library is untouched) and sets `InputNormalization` on in its inner PLL block. Set
+  `pmu_input_normalization = false` in `params.m` to use the stock block. Logged raw
+  signals stay in SI units, and `run_case` converts PMU magnitudes back to SI. PMU
+  magnitudes are peak values; the summary table converts them to RMS.
 - PMU samples per cycle is 64, not 32. The PMU (Three-Phase) block in R2025b only offers
   24, 48 or 64. 64 meets the "at least 32" rule. With Ts = 1/(50*64) = 0.3125 ms, a
   reporting rate factor k = 64 gives one report every 20 ms (50 per second).
