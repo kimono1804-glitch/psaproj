@@ -49,6 +49,8 @@ function testPmuTiming(tc)
 p = tc.TestData.p;
 verifyGreaterThanOrEqual(tc, p.pmu_samples_per_cycle, 32);
 verifyEqual(tc, p.pmu_report_ratio*p.pmu_Ts_s, 20e-3, 'AbsTol', 1e-12);
+verifyEqual(tc, p.pmu_report_ratio, 64);
+verifyError(tc, @() params('pmu_samples_per_cycle', 32), 'params:pmu');
 end
 
 function testOverrides(tc)

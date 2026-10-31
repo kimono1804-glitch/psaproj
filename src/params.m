@@ -47,7 +47,7 @@ p.fault_t_off_s = 1.10;
 
 % PMU
 p.pmu_reports_per_s    = 50;
-p.pmu_samples_per_cycle = 32;     % spec asks for at least 32
+p.pmu_samples_per_cycle = 64;     % spec asks for at least 32; block allows only 24, 48, 64
 
 % Simulation and solver
 p.t_stop_s        = 2;
@@ -108,7 +108,10 @@ p.line_electrical_length_deg = rad2deg(p.w_rad_s*p.line_travel_time_s);
 % Sections
 p.line_section_length_km = p.line_length_km/p.line_n_sections;
 
-% PMU timing
+% PMU timing. The block samples at Ts = 1/(f*Nsr) and reports every k*Ts.
+if ~ismember(p.pmu_samples_per_cycle, [24 48 64])
+    error('params:pmu', 'PMU block only supports 24, 48 or 64 samples per cycle.');
+end
 p.pmu_Ts_s = p.T_cycle_s/p.pmu_samples_per_cycle;
 p.pmu_report_period_s = 1/p.pmu_reports_per_s;
 p.pmu_report_ratio = round(p.pmu_report_period_s/p.pmu_Ts_s);

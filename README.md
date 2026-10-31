@@ -54,7 +54,9 @@ All of these are named fields in `src/params.m`.
 
 ## Deviations
 
-None yet.
+- PMU samples per cycle is 64, not 32. The PMU (Three-Phase) block in R2025b only offers
+  24, 48 or 64. 64 meets the "at least 32" rule. With Ts = 1/(50*64) = 0.3125 ms, a
+  reporting rate factor k = 64 gives one report every 20 ms (50 per second).
 
 ## Known limits
 
